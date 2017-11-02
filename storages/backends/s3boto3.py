@@ -18,6 +18,8 @@ from django.utils.timezone import is_naive, localtime
 
 from storages.utils import safe_join, setting
 
+from mezzanine.conf import settings
+
 try:
     import boto3.session
     from boto3 import __version__ as boto3_version
@@ -480,6 +482,48 @@ class S3Boto3Storage(Storage):
         except ClientError:
             return False
 
+    def isdir(self, name):
+        # Fast version
+        name = self._normalize_name(self._clean_name(name))
+        is_directory = True
+
+        for file_category in settings.FILEBROWSER_EXTENSIONS.items():
+            for file_type in file_category[1]:
+                if name.endswith(file_type):
+                    is_directory = False
+
+        # Slow version
+
+        # if name and not name.endswith('/'):
+        #     name += '/'
+        #
+        # s3 = boto3.resource("s3")
+        #
+        # try:
+        #     directory = s3.Object(settings.AWS_STORAGE_BUCKET_NAME, name)
+        #     if 'binary/octet-stream' in directory.content_type:
+        #         is_directory = True
+        #     else:
+        #         is_directory = False
+        #         # bucket = s3.Bucket(settings.AWS_STORAGE_BUCKET_NAME)
+        # except ClientError as e:
+        #     if e.response['Error']['Code'] == "404":
+        #         is_directory = False
+        #     else:
+        #         raise
+
+        return is_directory
+
+    def makedirs(self, name):
+        name = self._normalize_name(self._clean_name(name))
+        client = boto3.client('s3')
+
+        response = client.put_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Body='',
+            Key=name+'/'
+        )
+
     def listdir(self, name):
         name = self._normalize_name(self._clean_name(name))
         # for the bucket.objects.filter and logic below name needs to end in /
@@ -500,6 +544,7 @@ class S3Boto3Storage(Storage):
                 # Directory
                 dirs.add(parts[0])
         return list(dirs), files
+
 
     def size(self, name):
         name = self._normalize_name(self._clean_name(name))
