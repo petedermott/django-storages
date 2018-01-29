@@ -525,23 +525,26 @@ class S3Boto3Storage(Storage):
 
     def listdir(self, name):
         name = self._normalize_name(self._clean_name(name))
+        print(name)
         # for the bucket.objects.filter and logic below name needs to end in /
         # But for the root path "" we leave it as an empty string
-        if name and not name.endswith('/'):
-            name += '/'
-
-        files = []
         dirs = set()
-        base_parts = name.split("/")[:-1]
-        for item in self.bucket.objects.filter(Prefix=self._encode_name(name)):
-            parts = item.key.split("/")
-            parts = parts[len(base_parts):]
-            if len(parts) == 1:
-                # File
-                files.append(parts[0])
-            elif len(parts) > 1:
-                # Directory
-                dirs.add(parts[0])
+        files = []
+
+        if name:
+            if not name.endswith('/'):
+                name += '/'
+
+            base_parts = name.split("/")[:-1]
+            for item in self.bucket.objects.filter(Prefix=self._encode_name(name)):
+                parts = item.key.split("/")
+                parts = parts[len(base_parts):]
+                if len(parts) == 1:
+                    # File
+                    files.append(parts[0])
+                elif len(parts) > 1:
+                    # Directory
+                    dirs.add(parts[0])
         return list(dirs), files
 
 
