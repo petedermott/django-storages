@@ -516,10 +516,9 @@ class S3Boto3Storage(Storage):
 
     def makedirs(self, name):
         name = self._normalize_name(self._clean_name(name))
-        client = boto3.client('s3')
+        s3 = boto3.resource('s3')
 
-        response = client.put_object(
-            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+        s3.Bucket(settings.AWS_STORAGE_BUCKET_NAME).put_object(
             Body='',
             Key=name+'/'
         )
